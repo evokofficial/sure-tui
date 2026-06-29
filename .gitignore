@@ -1,0 +1,41 @@
+# Binary outputs
+# Add local names of your web applications or CLI tools if they differ
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+out/
+
+# Test coverage and profiles
+*.out
+*.test
+*.prof
+c.out
+
+# Dependency directories
+# Unchecked vendor directories can be excluded if managing via go.mod
+vendor/
+
+# Go tool outputs and caching
+.go/
+pkg/
+
+# Development / Environment secrets
+.env
+.env.*
+!.env.example
+
+# Common IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# OS-specific files
+.DS_Store
+Thumbs.db
