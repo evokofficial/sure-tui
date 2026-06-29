@@ -13,6 +13,17 @@ func TestRelRange(t *testing.T) {
 	if got := ParseQuery("week").From; got != want {
 		t.Fatalf("week from = %q, want %q", got, want)
 	}
+	// Compact spans: 30d, 2w, 3m, 1y.
+	for tok, exp := range map[string]string{
+		"30d": time.Now().AddDate(0, 0, -30).Format("2006-01-02"),
+		"2w":  time.Now().AddDate(0, 0, -14).Format("2006-01-02"),
+		"3m":  time.Now().AddDate(0, -3, 0).Format("2006-01-02"),
+		"1y":  time.Now().AddDate(-1, 0, 0).Format("2006-01-02"),
+	} {
+		if got := ParseQuery(tok).From; got != exp {
+			t.Fatalf("%s from = %q, want %q", tok, got, exp)
+		}
+	}
 	// Month name resolves to a full month range, most recent occurrence.
 	q := ParseQuery("may")
 	if q.From == "" || q.To == "" || q.From[5:7] != "05" || q.To[5:7] != "05" {

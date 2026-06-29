@@ -1,15 +1,23 @@
 package main
 
 import (
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
 
 const dateFmt = "2006-01-02"
 
-// relRange maps a human keyword to a date range, or ok=false if it isn't one.
-// Spans ("week", "month"…) start that far back with an open end. Month names
-// ("july", "may"…) resolve to the most recent occurrence of that whole month.
+// spanRe matches a compact lookback like "30d", "2w", "3m", "1y".
+var spanRe = regexp.MustCompile(`^(\d+)([dwmy])$`)
+
+// spanAlias maps friendly words to the compact span syntax.
+var spanAlias = map[string]string{"today": "0d", "week": "1w", "month": "1m", "year": "1y"}
+
+// relRange maps a relative keyword to a date range, or ok=false if it isn't one.
+// Spans (e.g. "30d", "2w", "month") start that far back with an open end. Month
+// names ("july", "may"…) resolve to the most recent occurrence of that month.
 func relRange(s string) (from, to string, ok bool) {
 	now := time.Now()
 	if mo, isMonth := monthNames[s]; isMonth {
@@ -20,22 +28,24 @@ func relRange(s string) (from, to string, ok bool) {
 		start := time.Date(y, mo, 1, 0, 0, 0, 0, time.UTC)
 		return start.Format(dateFmt), start.AddDate(0, 1, -1).Format(dateFmt), true
 	}
-	var f time.Time
-	switch s {
-	case "today":
-		f = now
-	case "week":
-		f = now.AddDate(0, 0, -7)
-	case "2 weeks":
-		f = now.AddDate(0, 0, -14)
-	case "month":
-		f = now.AddDate(0, -1, 0)
-	case "3 months":
-		f = now.AddDate(0, -3, 0)
-	case "year":
-		f = now.AddDate(-1, 0, 0)
-	default:
+	if a, isAlias := spanAlias[s]; isAlias {
+		s = a
+	}
+	m := spanRe.FindStringSubmatch(s)
+	if m == nil {
 		return "", "", false
+	}
+	n, _ := strconv.Atoi(m[1])
+	var f time.Time
+	switch m[2] {
+	case "d":
+		f = now.AddDate(0, 0, -n)
+	case "w":
+		f = now.AddDate(0, 0, -7*n)
+	case "m":
+		f = now.AddDate(0, -n, 0)
+	case "y":
+		f = now.AddDate(-n, 0, 0)
 	}
 	return f.Format(dateFmt), "", true
 }

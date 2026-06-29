@@ -130,7 +130,8 @@ apply (`esc` to leave). Tokens:
 | `transfer` / `transfers`  | only transfers                                                |
 | `from: 2026-05-01`        | on/after this date (inclusive)                                |
 | `to: 2026-05-31`          | on/before this date (inclusive)                               |
-| `today`, `week`, `2 weeks`, `month`, `3 months`, `year` | relative lookback     |
+| `30d`, `2w`, `3m`, `1y`   | relative lookback: N days / weeks / months / years            |
+| `today`, `week`, `month`, `year` | aliases for `0d` / `1w` / `1m` / `1y`                  |
 | `july`, `may`, …          | the most recent occurrence of that whole month                |
 | `+Name`                   | category name contains `Name` (ORed across multiple)          |
 | `@Name`                   | tag name contains `Name` (ORed)                               |
