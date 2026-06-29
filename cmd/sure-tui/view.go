@@ -281,6 +281,7 @@ func (m model) configBox() string {
 		{"range", m.cfg.Range},
 		{"instant", fmt.Sprintf("%t", m.cfg.InstantUpdate)},
 		{"ui", m.cfg.UI},
+		{"max txns", fmt.Sprintf("%d", m.cfg.MaxTransactions)},
 	}
 	var b strings.Builder
 	b.WriteString(m.st.header.Render(" Config "))

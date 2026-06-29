@@ -14,6 +14,7 @@ import (
 
 type Client struct {
 	key, base string
+	maxTxns   int // cap on rows AllTransactions downloads
 	http      *http.Client
 }
 
@@ -26,7 +27,11 @@ func NewClient(cfg Config) *Client {
 	if base == "" {
 		base = "https://app.sure.am"
 	}
-	return &Client{key: cfg.APIKey, base: base, http: &http.Client{Timeout: 20 * time.Second}}
+	maxTxns := cfg.MaxTransactions
+	if maxTxns <= 0 {
+		maxTxns = 5000
+	}
+	return &Client{key: cfg.APIKey, base: base, maxTxns: maxTxns, http: &http.Client{Timeout: 20 * time.Second}}
 }
 
 type Account struct {
@@ -176,24 +181,6 @@ func (c *Client) Transactions(filter url.Values, page int) ([]Txn, int, error) {
 	}
 	err := c.do("GET", "/api/v1/transactions", q, nil, &r)
 	return r.Transactions, r.Pagination.TotalPages, err
-}
-
-// AllTransactions fetches every page matching the filter and returns the
-// combined rows, so totals reflect the whole filtered set rather than one page.
-func (c *Client) AllTransactions(filter url.Values) ([]Txn, error) {
-	var all []Txn
-	// ponytail: cap ~5000 rows; add lazy paging if a real ledger blows past it.
-	for page := 1; page <= 50; page++ {
-		t, total, err := c.Transactions(filter, page)
-		if err != nil {
-			return nil, err
-		}
-		all = append(all, t...)
-		if page >= total {
-			break
-		}
-	}
-	return all, nil
 }
 
 // Create returns the created transaction so it can be added to the list without

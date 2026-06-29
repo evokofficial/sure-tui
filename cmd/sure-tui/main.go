@@ -101,7 +101,12 @@ type model struct {
 type acctsMsg []Account
 type catsMsg []Category
 type tagsMsg []Tag
-type txnsMsg struct{ txns []Txn }
+// txnsPageMsg is one page of the range download; pages stream in so rows appear
+// as they arrive instead of after the whole range finishes.
+type txnsPageMsg struct {
+	txns        []Txn
+	page, total int
+}
 type errMsg struct{ error }
 
 // savedMsg carries the transaction the API returned after a create/edit so it
@@ -124,19 +129,22 @@ func (m model) fetchAccounts() tea.Cmd {
 	}
 }
 
-// fetchTxns downloads the whole range once; all query filtering is client-side.
-func (m model) fetchTxns() tea.Cmd {
+// fetchTxns starts the range download at page 1; each page chains the next via
+// txnsPageMsg, so the list fills in progressively.
+func (m model) fetchTxns() tea.Cmd { return m.fetchTxnsPage(1) }
+
+func (m model) fetchTxnsPage(page int) tea.Cmd {
 	api, days := m.api, m.rangeDays
 	v := url.Values{}
 	if days > 0 {
 		v.Set("start_date", time.Now().AddDate(0, 0, -days).Format(dateFmt))
 	}
 	return func() tea.Msg {
-		t, err := api.AllTransactions(v)
+		t, total, err := api.Transactions(v, page)
 		if err != nil {
 			return errMsg{err}
 		}
-		return txnsMsg{t}
+		return txnsPageMsg{txns: t, page: page, total: total}
 	}
 }
 
@@ -380,11 +388,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.tags = msg
 		m.rebuildLeft()
 		return m, nil
-	case txnsMsg:
-		m.loading = false
-		m.allTxns = msg.txns
+	case txnsPageMsg:
+		if msg.page == 1 {
+			m.allTxns = msg.txns // first page replaces the old set
+		} else {
+			m.allTxns = append(m.allTxns, msg.txns...)
+		}
 		sort.SliceStable(m.allTxns, func(i, j int) bool { return m.allTxns[i].Date > m.allTxns[j].Date })
 		m.refilter()
+		// Keep paging until the server runs out or we hit the configured cap.
+		if msg.page < msg.total && msg.page < max((m.api.maxTxns+99)/100, 1) {
+			return m, m.fetchTxnsPage(msg.page + 1)
+		}
+		m.loading = false
 		return m, nil
 	case errMsg:
 		m.status = "✗ " + msg.Error()

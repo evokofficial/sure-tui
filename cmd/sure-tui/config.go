@@ -23,8 +23,11 @@ type Config struct {
 	InstantUpdate bool  `toml:"instant_update"`
 	// UI picks the pane layout: "classic" (│ separator) or "bordered" (boxed
 	// panes, spotify-tui style). Unknown/empty falls back to classic.
-	UI    string `toml:"ui"`
-	Theme Theme  `toml:"theme"`
+	UI string `toml:"ui"`
+	// MaxTransactions caps how many rows are downloaded for the range. 0/absent
+	// keeps the 5000 default.
+	MaxTransactions int   `toml:"max_transactions"`
+	Theme           Theme `toml:"theme"`
 
 	path string // where it loaded from, shown in the config window
 }
@@ -50,6 +53,7 @@ api_url = "https://app.sure.am"
 range   = "180"   # transactions to download on start: 90, 180, 365, all
 instant_update = true  # add new/edited rows to the list instead of refetching
 ui      = "classic"   # pane layout: "classic" (│ separator) or "bordered" (boxed panes)
+max_transactions = 5000  # cap on rows downloaded for the range
 
 [theme]            # hex colors; omit any key to keep the built-in default
 # header         = "#7aa2f7"
@@ -67,7 +71,7 @@ ui      = "classic"   # pane layout: "classic" (│ separator) or "bordered" (bo
 // loadConfig reads the config, writing a template on first run, then overlays
 // any env vars.
 func loadConfig() Config {
-	c := Config{APIURL: "https://app.sure.am", Range: "180", InstantUpdate: true, UI: "classic", Theme: defaultTheme}
+	c := Config{APIURL: "https://app.sure.am", Range: "180", InstantUpdate: true, UI: "classic", MaxTransactions: 5000, Theme: defaultTheme}
 	c.path = configPath()
 
 	if _, err := os.Stat(c.path); os.IsNotExist(err) {
